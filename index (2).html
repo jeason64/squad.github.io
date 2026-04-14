@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>战术小队 (Squad) 兵种/人格匹配测试</title>
+    <style>
+        :root {
+            --army-green: #4b5320;
+            --clay-tan: #d2b48c;
+            --slate-gray: #2f4f4f;
+            --danger-red: #8b0000;
+            --bg-dark: #1a1a1a;
+            --card-bg: #2a2a2a;
+            --text-gold: #f4d03f;
+        }
+
+        body {
+            font-family: 'Consolas', 'Courier New', monospace;
+            background-color: var(--bg-dark);
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .quiz-container {
+            background-color: var(--card-bg);
+            border: 2px solid var(--army-green);
+            border-radius: 4px;
+            padding: 30px;
+            max-width: 700px;
+            width: 100%;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        h1 {
+            color: var(--text-gold);
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 1px solid var(--army-green);
+            padding-bottom: 15px;
+        }
+
+        .status-bar {
+            font-size: 0.8rem;
+            color: var(--army-green);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .question-box {
+            display: none;
+        }
+
+        .question-box.active {
+            display: block;
+            animation: terminalIn 0.3s ease-out;
+        }
+
+        @keyframes terminalIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .question-text {
+            font-size: 1.2rem;
+            margin-bottom: 25px;
+            line-height: 1.5;
+            color: #fff;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option-btn {
+            background: transparent;
+            border: 1px solid var(--slate-gray);
+            color: #ccc;
+            padding: 12px 20px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+
+        .option-btn:hover {
+            background-color: var(--army-green);
+            color: white;
+            border-color: var(--text-gold);
+        }
+
+        /* 结果页面样式 */
+        #result-box { text-align: center; }
+        .result-title { font-size: 2rem; color: var(--text-gold); margin: 20px 0; }
+        .result-desc { line-height: 1.8; margin-bottom: 30px; color: #bbb; text-align: left; }
+
+        /* 特殊按钮样式 */
+        .steam-link-btn {
+            display: inline-block;
+            background-color: var(--army-green);
+            color: white;
+            text-decoration: none;
+            padding: 15px 30px;
+            font-weight: bold;
+            border-radius: 4px;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+            margin-top: 20px;
+            min-width: 280px;
+            text-align: center;
+        }
+
+        .steam-link-btn:hover {
+            background-color: var(--danger-red);
+            border-color: #fff;
+            transform: scale(1.05);
+        }
+
+        .restart-text {
+            display: block;
+            margin-top: 25px;
+            color: var(--army-green);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        #progress-bar {
+            height: 4px;
+            background: var(--army-green);
+            width: 0%;
+            margin-bottom: 20px;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="quiz-container">
+        <div class="status-bar">
+            <span>SYS_INIT: OK</span>
+            <span id="coord">GRID_REF: 44.2 / 12.8</span>
+        </div>
+        <div id="progress-bar"></div>
+
+        <div id="intro-box" class="question-box active">
+            <h1>战术小队人格审查</h1>
+            <p style="text-align:center">正在接入指挥部网络... 请如实回答以下战地情景问题，以确定你的服役岗位。</p >
+            <div style="text-align:center; margin-top:30px;">
+                <button class="option-btn" style="text-align:center;" onclick="startQuiz()">[ 接受部署 ]</button>
+            </div>
+        </div>
+
+        <div id="quiz-box" class="question-box">
+            <div class="question-text" id="question">准备中...</div>
+            <div class="options-container" id="options"></div>
+        </div>
+
+        <div id="result-box" class="question-box">
+            <div class="status-bar">测试完成 - 岗位分配已就绪</div>
+            <div class="result-title" id="result-name">识别中...</div>
+            <div class="result-desc" id="result-text">正在检索档案...</div>
+            
+            <a href="steam://uninstall/3873410" 
+               class="steam-link-btn" 
+               id="steamBtn"
+               onmouseover="this.innerText='和朋友一起卸载战术小队吧'" 
+               onmouseout="this.innerText='和朋友一起游玩战术小队吧'">
+                和朋友一起游玩战术小队吧
+            </a >
+
+            <span class="restart-text" onclick="resetQuiz()">重新进行人格审查</span>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                q: "刚进入服务器，你发现没有小队，你会？",
+                o: [
+                    { t: "自己建一个队，开始招募队员。", s: {SL:3, MD:0, RF:0, CS:0} },
+                    { t: "等别人建队，然后第一时间抢入。", s: {SL:0, MD:1, RF:2, CS:1} },
+                    { t: "在公屏打字：'来个大佬开队！'。", s: {SL:0, MD:1, RF:1, CS:2} },
+                    { t: "去开直升机或装甲车，独狼行动。", s: {SL:1, MD:0, RF:0, CS:3} }
+                ]
+            },
+            {
+                q: "队长命令你去防守一个根本没敌人的点，你会？",
+                o: [
+                    { t: "执行命令，原地掏出铲子加固工事。", s: {SL:1, MD:1, RF:3, CS:1} },
+                    { t: "一直问队长：'还没人吗？我们要守到什么时候？'。", s: {SL:0, MD:0, RF:1, CS:3} },
+                    { t: "偷偷跑出防御圈找人杀。", s: {SL:0, MD:0, RF:2, CS:2} },
+                    { t: "顺便在点里蹲着挂机看手机。", s: {SL:0, MD:0, RF:0, CS:4} }
+                ]
+            },
+            {
+                q: "遭遇战开始，前线队友倒了一片，你的反应是？",
+                o: [
+                    { t: "封烟，大喊'别放弃治疗'，顶着火网去拉人。", s: {SL:1, MD:4, RF:0, CS:0} },
+                    { t: "躲在掩体后拼命压制射击，虽然看不到人。", s: {SL:1, MD:0, RF:3, CS:1} },
+                    { t: "趴在原地一动不动，祈祷敌人的坦克没看见你。", s: {SL:0, MD:1, RF:1, CS:2} },
+                    { t: "大喊'对面在120方向树后'，然后被一枪放倒。", s: {SL:2, MD:0, RF:2, CS:0} }
+                ]
+            },
+            {
+                q: "队长要求有人去开补给车（卡车），你会？",
+                o: [
+                    { t: "“我来，我最喜欢模拟卡车了。”", s: {SL:1, MD:1, RF:3, CS:1} },
+                    { t: "假装没听见，继续往前线冲。", s: {SL:0, MD:0, RF:2, CS:2} },
+                    { t: "看没人接话，叹口气默默跑回后方。", s: {SL:2, MD:2, RF:2, CS:0} },
+                    { t: "跳进车里但因为不会挂档把车开进沟里。", s: {SL:0, MD:0, RF:0, CS:4} }
+                ]
+            },
+            {
+                q: "你在路边发现了一辆敌方的FOB电台，你会？",
+                o: [
+                    { t: "疯狂呼叫队长请求铲掉它。", s: {SL:3, MD:0, RF:2, CS:0} },
+                    { t: "一个人默默掏出小铲子开铲。", s: {SL:1, MD:1, RF:3, CS:1} },
+                    { t: "在上面放个地雷，蹲在旁边钓鱼。", s: {SL:0, MD:0, RF:2, CS:3} },
+                    { t: "路过，没认出来那是啥。", s: {SL:0, MD:0, RF:0, CS:4} }
+                ]
+            },
+            {
+                q: "对于无线电（麦克风）的使用，你倾向于？",
+                o: [
+                    { t: "复读机模式：'Copy that', 'Roger'。", s: {SL:1, MD:2, RF:2, CS:0} },
+                    { t: "指挥官模式：一直逼报方位和敌情。", s: {SL:4, MD:0, RF:1, CS:0} },
+                    { t: "相声模式：讲段子缓解紧张气氛。", s: {SL:1, MD:1, RF:1, CS:4} },
+                    { t: "静默模式：只听不说话。", s: {SL:0, MD:2, RF:2, CS:2} }
+                ]
+            },
+            {
+                q: "看到敌方坦克过来了，你手里只有一把步枪，你会？",
+                o: [
+                    { t: "疯狂标记地图，在频道里狂喊：'有罐头！'。", s: {SL:3, MD:1, RF:1, CS:0} },
+                    { t: "对着坦克打一梭子，看看能不能把观察镜打坏。", s: {SL:0, MD:0, RF:1, CS:4} },
+                    { t: "躺在草丛里屏住呼吸，等它开过去。", s: {SL:1, MD:2, RF:2, CS:1} },
+                    { t: "追着坦克跑，试图爬上去。", s: {SL:0, MD:0, RF:0, CS:4} }
+                ]
+            },
+            {
+                q: "这局比赛输了，结算界面时你的感想是？",
+                o: [
+                    { t: "“队长是菜比，这局打得真憋屈。”", s: {SL:0, MD:0, RF:0, CS:4} },
+                    { t: "“没事，我救了20个人，值了。”", s: {SL:1, MD:4, RF:1, CS:0} },
+                    { t: "“怎么输的？我刚才一直在铲墙啊。”", s: {SL:1, MD:0, RF:3, CS:1} },
+                    { t: "“GG，下一把还要玩这个图。”", s: {SL:2, MD:2, RF:2, CS:2} }
+                ]
+            },
+            {
+                q: "如果要在游戏里做一个动作，你最常做的是？",
+                o: [
+                    { t: "按B键（说话）。", s: {SL:4, MD:1, RF:0, CS:0} },
+                    { t: "按左键（射击/挖土）。", s: {SL:0, MD:0, RF:4, CS:1} },
+                    { t: "按右键（瞄准/止血）。", s: {SL:0, MD:3, RF:2, CS:1} },
+                    { t: "按M键（看地图）。", s: {SL:3, MD:1, RF:1, CS:1} }
+                ]
+            },
+            {
+                q: "最后一题：你为什么玩这个游戏？",
+                o: [
+                    { t: "追求极端的战术和真实的指挥体验。", s: {SL:4, MD:0, RF:0, CS:0} },
+                    { t: "享受和朋友们一起分工合作的过程。", s: {SL:2, MD:2, RF:2, CS:2} },
+                    { t: "就喜欢听枪响和爆炸的声音。", s: {SL:0, MD:0, RF:4, CS:2} },
+                    { t: "因为这游戏能让我体验1小时走路5分钟暴毙。", s: {SL:1, MD:1, RF:1, CS:4} }
+                ]
+            }
+        ];
+
+        const results = [
+            { id: "SL", name: "【战略大师】 小队长 (SL)", desc: "你是小队的灵魂！你不仅需要看地图，还要处理指挥频道那群疯子的各种尖叫。虽然你整场比赛可能开不到5枪，但你放下的每一个FOB都是胜利的关键。请记住：别把电台放进那个该死的草丛里！" },
+            { id: "MD", name: "【战场圣母】 医疗兵 (Medic)", desc: "你是所有人眼中的天使！你手里那根绷带比枪管热得还快。你习惯了听着‘拉我拉我’的哀嚎穿梭在炮火中。队友的性命都在你手里，当然，有时候你也只是把他们拉起来再次送死。" },
+            { id: "RF", name: "【挖土机器】 步枪兵 (Rifleman)", desc: "你是小队的基石，也是最可靠的弹药库。你从不抱怨，队长指哪你挖哪。你是唯一一个会在坦克面前掏出小铲子的男人。虽然你很平凡，但没有你的弹药箱，狙击手就是个拿着烧火棍的哨兵。" },
+            { id: "CS", name: "【战地喜剧人】 气氛组 (Chaos)", desc: "你是这局比赛最大的变数！你可能在开车送满编小队的路上冲下悬崖，也可能在静默渗透时突然公放野狼Disco。你让这严肃的战场充满了快活的气息。输赢不重要，重要的是麦克风里传出的欢声笑语。" }
+        ];
+
+        let currentIdx = 0;
+        let totalScores = { SL: 0, MD: 0, RF: 0, CS: 0 };
+
+        function startQuiz() {
+            document.getElementById('intro-box').classList.remove('active');
+            document.getElementById('quiz-box').classList.add('active');
+            showQuestion();
+        }
+
+        function showQuestion() {
+            const q = questions[currentIdx];
+            document.getElementById('question').innerText = `${currentIdx + 1}. ${q.q}`;
+            const optCont = document.getElementById('options');
+            optCont.innerHTML = '';
+            
+            q.o.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt.t;
+                btn.onclick = () => next(opt.s);
+                optCont.appendChild(btn);
+            });
+
+            document.getElementById('progress-bar').style.width = ((currentIdx / questions.length) * 100) + '%';
+        }
+
+        function next(score) {
+            for (let key in score) totalScores[key] += score[key];
+            currentIdx++;
+            if (currentIdx < questions.length) {
+                showQuestion();
+            } else {
+                showResult();
+            }
+        }
+
+        function showResult() {
+            document.getElementById('quiz-box').classList.remove('active');
+            document.getElementById('result-box').classList.add('active');
+            document.getElementById('progress-bar').style.width = '100%';
+
+            let winner = 'RF';
+            let max = -1;
+            for (let key in totalScores) {
+                if (totalScores[key] > max) {
+                    max = totalScores[key];
+                    winner = key;
+                }
+            }
+
+            const res = results.find(r => r.id === winner);
+            document.getElementById('result-name').innerText = res.name;
+            document.getElementById('result-text').innerText = res.desc;
+        }
+
+        function resetQuiz() {
+            currentIdx = 0;
+            totalScores = { SL: 0, MD: 0, RF: 0, CS: 0 };
+            document.getElementById('result-box').classList.remove('active');
+            document.getElementById('intro-box').classList.add('active');
+            document.getElementById('progress-bar').style.width = '0%';
+        }
+    </script>
+</body>
+</html>
