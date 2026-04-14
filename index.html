@@ -138,6 +138,37 @@
     </style>
 </head>
 <body>
+<script>
+    function checkDevice() {
+        const userAgent = navigator.userAgent.toLowerCase();
+        const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+        
+        // 如果是移动端，直接重定向或覆盖页面
+        if (isMobile) {
+            document.body.innerHTML = `
+                <div style="
+                    background-color: #1a1a1a; 
+                    color: #f4d03f; 
+                    height: 100vh; 
+                    display: flex; 
+                    flex-direction: column;
+                    justify-content: center; 
+                    align-items: center; 
+                    text-align: center;
+                    font-family: monospace;
+                    padding: 20px;
+                ">
+                    <h1 style="border: none;">[ 访问拒绝 ]</h1>
+                    <p>检测到移动端设备。由于战术核显卡驱动不匹配（并没有），</p>
+                    <p>请使用 Windows/Mac/Linux 桌面端浏览器开启审查程序。</p>
+                    <div style="margin-top: 20px; color: #4b5320;">ERROR_CODE: MOBILE_UNSUPPORTED</div>
+                </div>
+            `;
+        }
+    }
+    // 页面加载完成后立即检测
+    window.onload = checkDevice;
+</script>
 
     <div class="quiz-container">
         <div class="status-bar">
